@@ -1,0 +1,135 @@
+{
+    "images": [
+        {
+            "width": 1920,
+            "height": 1080,
+            "id": 0,
+            "file_name": "images/0.png"
+        },
+        {
+            "width": 1920,
+            "height": 1080,
+            "id": 1,
+            "file_name": "images/1.png"
+        },
+        {
+            "width": 1920,
+            "height": 1080,
+            "id": 2,
+            "file_name": "images/2.png"
+        },
+        {
+            "width": 1920,
+            "height": 1080,
+            "id": 3,
+            "file_name": "images/3.png"
+        }
+    ],
+    "categories": [
+        {
+            "id": 0,
+            "name": "go"
+        },
+        {
+            "id": 1,
+            "name": "left"
+        },
+        {
+            "id": 2,
+            "name": "mpg"
+        },
+        {
+            "id": 3,
+            "name": "right"
+        },
+        {
+            "id": 4,
+            "name": "tp"
+        }
+    ],
+    "annotations": [
+        {
+            "id": 0,
+            "image_id": 0,
+            "category_id": 2,
+            "segmentation": [],
+            "bbox": [
+                108.54271356783919,
+                994.9748743718593,
+                25.326633165829158,
+                27.13567839195978
+            ],
+            "ignore": 0,
+            "iscrowd": 0,
+            "area": 687.2553723390822
+        },
+        {
+            "id": 1,
+            "image_id": 1,
+            "category_id": 4,
+            "segmentation": [],
+            "bbox": [
+                993.4859525213255,
+                522.2398937655987,
+                27.735221710998687,
+                35.72578393122237
+            ],
+            "ignore": 0,
+            "iscrowd": 0,
+            "area": 990.8625381316866
+        },
+        {
+            "id": 2,
+            "image_id": 2,
+            "category_id": 0,
+            "segmentation": [],
+            "bbox": [
+                1476.1809045226128,
+                994.9748743718588,
+                113.96984924623102,
+                43.417085427135824
+            ],
+            "ignore": 0,
+            "iscrowd": 0,
+            "area": 4948.238680841404
+        },
+        {
+            "id": 3,
+            "image_id": 3,
+            "category_id": 1,
+            "segmentation": [],
+            "bbox": [
+                126.63316582914571,
+                817.6884422110552,
+                27.135678391959797,
+                27.13567839195978
+            ],
+            "ignore": 0,
+            "iscrowd": 0,
+            "area": 736.3450417918733
+        },
+        {
+            "id": 4,
+            "image_id": 3,
+            "category_id": 3,
+            "segmentation": [],
+            "bbox": [
+                421.1225416124444,
+                820.0686516700744,
+                25.317988473694026,
+                24.474055524570893
+            ],
+            "ignore": 0,
+            "iscrowd": 0,
+            "area": 619.6338556756335
+        }
+    ],
+    "info": {
+        "year": 2026,
+        "version": "1.0",
+        "description": "",
+        "contributor": "Label Studio",
+        "url": "",
+        "date_created": "2026-03-31 10:54:37.517116"
+    }
+}
