@@ -130,9 +130,10 @@ class FarmFlowerTask(MyBaseTask):
             key = str(i)
             self.log_debug(f"投掷精灵 {key}")
             self.send_key(key)
-            self.sleep(0.7)          # 按键后延迟0.7秒
+            self.sleep(0.3)          # 按键后延迟0.3秒
             self.click(0.5, 0.5)     # 左键点击屏幕中心
-            self.sleep(1)            # 点击后延迟1秒
+            self.sleep(0.8)            # 点击后延迟1秒
+        self.sleep(1)
 
     def step5_wait_custom(self):
         """步骤5：等待用户配置的时间（秒）"""
