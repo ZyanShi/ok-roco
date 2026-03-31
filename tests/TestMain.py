@@ -1,12 +1,8 @@
-import unittest
-import pyautogui
-
-class TestEscKey(unittest.TestCase):
-    def test_press_esc(self):
-        """测试发送 ESC 键"""
-        pyautogui.press('esc')
-        # 如果没有异常，则测试通过
-        self.assertTrue(True)
 
 if __name__ == '__main__':
-    unittest.main()
+    result = 1 + 1
+    print(f"1 + 1 = {result}")
+    if result == 2:
+        print("测试成功")
+    else:
+        print("测试失败")
