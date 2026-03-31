@@ -8,6 +8,10 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    # ✅ 核心：添加权限，解决 Release 访问报错
+    permissions:
+      contents: write
+      
     env:
       PYTHONIOENCODING: 'UTF-8'
 
@@ -21,28 +25,19 @@ jobs:
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           git config --global core.autocrlf false
           git config --global core.eol lf
-          git config --global user.email "ZyanShi@users.noreply.github.com"
-          git config --global user.name "ZyanShi"
-          echo "action_state=yellow" >> $env:GITHUB_ENV
-          echo "${{ env.action_state }}"
 
       - uses: actions/checkout@v4
         with:
           lfs: true
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          
-      - name: Set UTF-8 encoding
-        run: |
-          set PYTHONIOENCODING=utf-8
-          set PYTHONLEGACYWINDOWSSTDIO=utf-8
-          echo PYTHONIOENCODING=utf-8 >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: inline_ok_requirements
@@ -56,29 +51,17 @@ jobs:
               python -m unittest $_.FullName
           }
 
-      # 删除或注释掉同步步骤，因为你不需要同步到原作者的仓库
-      # - name: Sync Repositories
-      #   id: sync
-      #   uses: ok-oldking/partial-sync-repo@master
-      #   with:
-      #     repos: |
-      #       https://ok-oldking:${{ secrets.OK_GH }}@github.com/ok-oldking/ok-boilerplate-update.git
-      #     sync_list: 'deploy.txt'
-      #     tag: ${{ github.ref_name }}
-      #     gitignore_file: '.update_repo_gitignore'
-      #     show_author: true
-
       - name: Build with PyAppify Action
         id: build-app
         uses: ok-oldking/pyappify-action@master
 
+      # ✅ 最终修复版 Release 步骤
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           draft: false
-          # 修改 body，不使用 sync 步骤的输出
-          body: |
-            ### 版本 ${{ github.ref_name }}
-            自动构建的 Release
+          overwrite: true
+          generate_release_notes: true
           files: pyappify_dist/*
