@@ -10,26 +10,18 @@ class FarmFlowerTask(MyBaseTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = "奇丽花刷花"
-        self.description = "自动执行奇丽花刷花序列：传送、投掷精灵、背包操作、循环采集"
+        self.description = "自动执行奇丽花刷花序列：传送、移动、投掷精灵，然后循环鞠躬采集"
         self.group_icon = FluentIcon.LEAF
         self.icon = FluentIcon.LEAF
 
         # 默认配置（UI可调）
         self.default_config.update({
-            '收花方式': '上坐骑',
-            '背包按键': 'z',  # 打开精灵背包的按键
-            '等待时间': 10,          # 步骤5和11中的等待时间（秒）
-
+            '鞠躬间隔': 15,          # 6→R 后的等待时间（秒）
+            '传送时间': 180,         # 内层循环最大持续时间（秒）
         })
         self.config_description = {
-            '等待时间': '扔球后的等待时间（秒）',
-            '背包按键': '打开精灵背包的快捷键',
-            '收花方式': '收花时的操作方式',
-        }
-
-        # 定义下拉选项（参考 MoKuaiJinBiTask）
-        self.config_type = {
-            '收花方式': {'type': "drop_down", 'options': ['上坐骑']}
+            '鞠躬间隔': '按6→R后等待的时间（秒）',
+            '传送时间': '内层循环的最大持续时间（秒），超时后重新传送',
         }
 
         # 预定义区域坐标（基于1920x1080）
@@ -37,15 +29,12 @@ class FarmFlowerTask(MyBaseTask):
 
     def validate_config(self, key, value):
         """验证配置项是否合法"""
-        if key == '等待时间':
+        if key == '鞠躬间隔':
             if not isinstance(value, (int, float)) or value < 1 or value > 300:
-                return "等待时间必须在 1~300 之间"
-        elif key == '背包按键':
-            if not isinstance(value, str) or len(value) != 1:
-                return "背包按键必须是单个字符"
-        elif key == '收花方式':
-            if value not in ['上坐骑', '投掷精灵']:
-                return "收花方式必须是 '上坐骑' 或 '投掷精灵'"
+                return "鞠躬间隔必须在 1~300 之间"
+        elif key == '传送时间':
+            if not isinstance(value, (int, float)) or value < 10 or value > 600:
+                return "传送时间必须在 10~600 之间"
         return None
 
     # ------------------- 辅助方法 -------------------
@@ -57,13 +46,6 @@ class FarmFlowerTask(MyBaseTask):
             if box_found:
                 return box_found
             self.sleep(0.5)
-
-    def _open_backpack(self):
-        """按配置的按键打开精灵背包"""
-        key = self.config.get('背包按键', 'z')
-        self.log_info(f"按 '{key}' 打开精灵背包")
-        self.send_key(key)
-        self.sleep(0.5)
 
     # ------------------- 步骤方法 -------------------
     def step1_wait_main_page(self):
@@ -77,10 +59,10 @@ class FarmFlowerTask(MyBaseTask):
             else:
                 self.log_info("10秒内未检测到mpg，按ESC尝试返回主页面")
                 self.send_key('esc')
-                self.sleep(2)  # 等待按键生效
+                self.sleep(2)
 
     def step2_open_map_and_teleport(self):
-        """步骤2：打开地图，点击tp（带偏移校准），再点击go"""
+        """步骤2：打开地图，点击tp（直接点击中心），再点击go"""
         self.log_info("步骤2：打开地图并传送")
         self.send_key('m')
         self.sleep(1)
@@ -96,13 +78,8 @@ class FarmFlowerTask(MyBaseTask):
             self.log_error("未找到tp图片，传送失败")
             return False
 
-        # 偏移校准（可手动调整）
-        OFFSET_X, OFFSET_Y = 0, 0
-        center = tp_feature.center()
-        click_x = center[0] + OFFSET_X
-        click_y = center[1] + OFFSET_Y
-        self.log_info(f"点击tp坐标: ({click_x}, {click_y})")
-        self.click(click_x, click_y, after_sleep=0.5)
+        # 直接点击 tp 特征中心（移除偏移校准）
+        self.click(tp_feature, after_sleep=0.5)
 
         go_feature = self.wait_feature('go', time_out=10, raise_if_not_found=False)
         if not go_feature:
@@ -129,184 +106,66 @@ class FarmFlowerTask(MyBaseTask):
         self.sleep(0.5)
         return True
 
-    def step4_throw_spirits(self):
-        """步骤4：投掷精灵序列：1~6，每个按键后延迟0.7s，左键，再延迟1s"""
-        self.log_info("步骤4：开始投掷精灵（1~6）")
-        for i in range(1, 7):
-            key = str(i)
-            self.log_debug(f"投掷精灵 {key}")
-            self.send_key(key)
-            self.sleep(0.3)          # 按键后延迟0.3秒
-            self.click(0.5, 0.5)     # 左键点击屏幕中心
-            self.sleep(0.8)            # 点击后延迟1秒
-        self.sleep(1)
-
-    def step5_wait_custom(self):
-        """步骤5：等待用户配置的时间（秒）"""
-        wait_sec = self.config.get('等待时间', 10)
-        self.log_info(f"步骤5：等待 {wait_sec} 秒")
-        self.sleep(wait_sec)
-
-    def step6_open_backpack_and_click_left(self):
-        """步骤6：打开背包，等待left图片并点击，然后ESC返回"""
-        self.log_info("步骤6：打开背包，点击左侧按钮(left)")
-        self._open_backpack()
-        left_box = self.wait_feature('left', time_out=10, raise_if_not_found=False)
-        if not left_box:
-            self.log_error("未找到left图片")
-            return False
-        self.click(left_box, after_sleep=0.5)
-        self.send_key('esc')
-        self.sleep(1.5)
-        return True
-
-    def step7_press_keys(self):
-        """步骤7：根据收花方式配置执行操作"""
-        method = self.config.get('收花方式', '上坐骑')
-        if method == '上坐骑':
-            self.log_info("步骤7（上坐骑方式）：按1，R，延迟1秒，X")
-            self.send_key('1')
-            self.sleep(0.05)
-            self.send_key('r')
-            self.sleep(1)
-            self.send_key('x')
-            self.sleep(0.5)
-        else:  # 投掷精灵
-            self.log_info("步骤7（投掷精灵方式）：按1，延迟0.5秒，左键点击")
-            self.send_key('1')
-            self.sleep(0.5)
-            self.click(0.5, 0.5)   # 点击屏幕中心
-            self.sleep(0.5)
-
-    def step8_open_backpack_and_click_right(self):
-        """步骤8：打开背包，等待right图片并点击，然后ESC返回"""
-        self.log_info("步骤8：打开背包，点击右侧按钮(right)")
-        self._open_backpack()
-        right_box = self.wait_feature('right', time_out=10, raise_if_not_found=False)
-        if not right_box:
-            self.log_error("未找到right图片")
-            return False
-        self.click(right_box, after_sleep=0.5)
-        self.send_key('esc')
-        self.sleep(2)
-        return True
-
-    def step9_repeat_step4(self):
-        """步骤9：重复第四步（投掷精灵）"""
-        self.log_info("步骤9：重复投掷精灵序列")
-        self.step4_throw_spirits()
-
-    def step10_tab_and_two(self):
-        """步骤10：发送Tab键，延迟0.5，按2，延迟1，ESC返回"""
-        self.log_info("步骤10：发送Tab键，然后按2")
-        self.send_key('tab')
-        self.sleep(0.5)
-        self.send_key('2')
-        self.sleep(1)
-        self.send_key('esc')
-        self.sleep(0.5)
-
-    def step11_repeat_step5(self):
-        """步骤11：重复第五步（等待自定义时间）"""
-        self.log_info("步骤11：重复等待")
-        self.step5_wait_custom()
-
-    def step12_repeat_step6(self):
-        """步骤12：重复第六步（打开背包点left）"""
-        self.log_info("步骤12：重复打开背包点left")
-        return self.step6_open_backpack_and_click_left()
-
-    def step13_repeat_step7_and_check(self):
-        """
-        步骤13：重复第七步（根据收花方式），然后OCR检测向阳花，超时2秒。
-        返回 True 表示检测到向阳花（可继续），False 表示未检测到（无法继续产出）
-        """
-        self.log_info("步骤13：执行收花操作，然后检测向阳花")
-        self.step7_press_keys()
-
-        # OCR检测区域（原始坐标）
-        x1, y1, x2, y2 = 1685, 275, 1770, 315
-        x1_s, y1_s = self._get_scaled_coordinates(x1, y1)
-        x2_s, y2_s = self._get_scaled_coordinates(x2, y2)
-        ocr_box = Box(x1_s, y1_s, width=x2_s - x1_s, height=y2_s - y1_s)
-
-        result = self.wait_ocr(match="向阳花", box=ocr_box, time_out=2, raise_if_not_found=False)
-        if result:
-            self.log_info("检测到向阳花，可继续产出")
-            return True
-        else:
-            self.log_info("未检测到向阳花，无法继续产出")
-            return False
-
-    def step14_repeat_step8(self):
-        """步骤14：重复第八步（打开背包点right）"""
-        self.log_info("步骤14：重复打开背包点right")
-        return self.step8_open_backpack_and_click_right()
-
     # ------------------- 主循环 -------------------
     def run(self):
         """任务主入口"""
         try:
             self.log_info("===== 奇丽花刷花任务启动 =====", notify=True)
 
-            outer_loop = 0
-            while True:
-                outer_loop += 1
-                self.log_info(f"========== 第 {outer_loop} 轮完整流程开始 ==========")
-
-                # 执行步骤1~8（前置流程）
+            while True:  # 外层循环：每次重新传送
+                # 执行步骤1~3（传送、移动）
                 self.step1_wait_main_page()
 
                 if not self.step2_open_map_and_teleport():
-                    self.log_error("步骤2失败，重试")
+                    self.log_error("步骤2失败，5秒后重试")
                     self.sleep(5)
                     continue
 
                 if not self.step3_wait_mpg_and_move():
-                    self.log_error("步骤3失败，重试")
+                    self.log_error("步骤3失败，5秒后重试")
                     self.sleep(5)
                     continue
 
-                self.step4_throw_spirits()
-                self.step5_wait_custom()
+                # 步骤4：投掷精灵1~5（每次按键后点击屏幕中心）
+                self.log_info("步骤4：投掷精灵1~5")
+                for i in range(1, 6):
+                    self.send_key(str(i))
+                    self.sleep(0.3)          # 按键后延迟
+                    self.click(0.5, 0.5)     # 点击屏幕中心
+                    self.sleep(0.8)          # 点击后延迟
+                self.sleep(1)
 
-                if not self.step6_open_backpack_and_click_left():
-                    self.log_error("步骤6失败，重试")
-                    self.sleep(5)
-                    continue
+                # 内层循环：反复鞠躬采集，计时
+                loop_start = time.time()
+                teleport_time = self.config.get('传送时间', 180)
+                bow_wait = self.config.get('鞠躬间隔', 15)
 
-                self.step7_press_keys()
-
-                if not self.step8_open_backpack_and_click_right():
-                    self.log_error("步骤8失败，重试")
-                    self.sleep(5)
-                    continue
-
-                # 内层循环：步骤9~14，无限循环直到检测不到向阳花
-                inner_loop = 0
                 while True:
-                    inner_loop += 1
-                    self.log_info(f"--- 内层循环第 {inner_loop} 次 ---")
+                    # 操作1：Tab -> 2 -> ESC
+                    self.log_info("执行操作：Tab -> 2 -> ESC")
+                    self.send_key('tab')
+                    self.sleep(0.5)
+                    self.send_key('2')
+                    self.sleep(1)
+                    self.send_key('esc')
+                    self.sleep(0.5)
 
-                    self.step9_repeat_step4()
-                    self.step10_tab_and_two()
-                    self.step11_repeat_step5()
+                    # 操作2：6 -> R -> 等待（鞠躬间隔） -> X
+                    self.log_info(f"执行操作：6 -> R -> 等待 {bow_wait} 秒 -> X")
+                    self.send_key('6')
+                    self.sleep(0.5)
+                    self.send_key('r')
+                    self.sleep(bow_wait)       # 鞠躬间隔
+                    self.send_key('x')
+                    self.sleep(0.5)
 
-                    if not self.step12_repeat_step6():
-                        self.log_error("步骤12失败，中断内层循环")
-                        break
-
-                    can_continue = self.step13_repeat_step7_and_check()
-                    if not self.step14_repeat_step8():
-                        self.log_error("步骤14失败，中断内层循环")
-                        break
-
-                    if not can_continue:
-                        self.log_info("无法继续产出向阳花，跳出内层循环，重新从步骤1开始")
-                        break
-
-                # 内层循环结束，继续下一轮外层循环（回到步骤1）
-                self.log_info("内层循环结束，准备开始新一轮完整流程")
+                    # 判断是否超过传送时间
+                    elapsed = time.time() - loop_start
+                    if elapsed >= teleport_time:
+                        self.log_info(f"循环时间已达 {elapsed:.1f} 秒，超过传送时间 {teleport_time} 秒，重新传送")
+                        break  # 跳出内层循环，回到外层重新开始
+                    else:
+                        self.log_info(f"循环时间 {elapsed:.1f} 秒，未达到传送时间，继续循环")
 
         except TaskDisabledException:
             self.log_info("奇丽花刷花任务被用户手动停止", notify=True)
