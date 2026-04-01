@@ -14,21 +14,28 @@ class FarmFlowerTask(MyBaseTask):
         self.group_icon = FluentIcon.LEAF
         self.icon = FluentIcon.LEAF
 
-        # 默认配置（UI可调）
+        # 默认配置
         self.default_config.update({
+            '挂机点位': '商店街炼金釜',  # 仅一个选项，预留扩展
             '鞠躬间隔': 15,          # 6→R 后的等待时间（秒）
             '传送时间': 180,         # 内层循环最大持续时间（秒）
         })
         self.config_description = {
-            '鞠躬间隔': '按6→R后等待的时间（秒）',
-            '传送时间': '内层循环的最大持续时间（秒），超时后重新传送',
+            '鞠躬间隔': '鞠躬之间的等待时间（秒）',
+            '传送时间': '超时后重新传送（秒）',
+            '挂机点位': '请确保在从传送点附近，将地图尺度拉到最小，放大地图',
         }
+
+        self.config_type['挂机点位'] = {
+        'type': "drop_down",
+        'options': ['商店街炼金釜']
+
+    }
 
         # 预定义区域坐标（基于1920x1080）
         self.TP_AREA = (740, 310, 1070, 650)   # 地图上tp图标的搜索区域
 
     def validate_config(self, key, value):
-        """验证配置项是否合法"""
         if key == '鞠躬间隔':
             if not isinstance(value, (int, float)) or value < 1 or value > 300:
                 return "鞠躬间隔必须在 1~300 之间"
@@ -49,38 +56,55 @@ class FarmFlowerTask(MyBaseTask):
 
     # ------------------- 步骤方法 -------------------
     def step1_wait_main_page(self):
-        """步骤1：等待主页面(mpg)出现，若超时则按ESC返回，直至出现"""
+        """等待主页面(mpg)出现，若超时则按ESC返回"""
         self.log_info("步骤1：等待主页面(mpg)出现...")
         while True:
             mpg_box = self.wait_feature('mpg', time_out=10, raise_if_not_found=False)
             if mpg_box:
                 self.log_info("主页面已出现")
                 return True
-            else:
-                self.log_info("10秒内未检测到mpg，按ESC尝试返回主页面")
-                self.send_key('esc')
-                self.sleep(2)
+            self.log_info("10秒内未检测到mpg，按ESC尝试返回主页面")
+            self.send_key('esc')
+            self.sleep(2)
 
     def step2_open_map_and_teleport(self):
-        """步骤2：打开地图，点击tp（直接点击中心），再点击go"""
+        """打开地图，3秒内寻找mallpot1/2并点击，未找到则点中心，再点go传送"""
         self.log_info("步骤2：打开地图并传送")
         self.send_key('m')
         self.sleep(1)
 
-        # 计算tp图片搜索区域
+        # 计算tp图片搜索区域（复用为mallpot图标区域）
         x1, y1, x2, y2 = self.TP_AREA
         x1_s, y1_s = self._get_scaled_coordinates(x1, y1)
         x2_s, y2_s = self._get_scaled_coordinates(x2, y2)
-        tp_box = Box(x1_s, y1_s, width=x2_s - x1_s, height=y2_s - y1_s)
+        search_box = Box(x1_s, y1_s, width=x2_s - x1_s, height=y2_s - y1_s)
 
-        tp_feature = self.wait_feature('tp', time_out=10, box=tp_box, raise_if_not_found=False)
-        if not tp_feature:
-            self.log_error("未找到tp图片，传送失败")
-            return False
+        # 3秒内轮询查找mallpot1或mallpot2
+        start_time = time.time()
+        found_icon = None
+        while time.time() - start_time < 3:
+            # 先尝试mallpot1
+            pot = self.find_one('mallpot1', box=search_box)
+            if pot:
+                found_icon = pot
+                break
+            # 再尝试mallpot2
+            pot = self.find_one('mallpot2', box=search_box)
+            if pot:
+                found_icon = pot
+                break
+            self.sleep(0.1)
 
-        # 直接点击 tp 特征中心（移除偏移校准）
-        self.click(tp_feature, after_sleep=0.5)
+        if found_icon:
+            self.log_info("找到挂机点位图标，点击")
+            self.click(found_icon, after_sleep=0.5)
+        else:
+            self.log_info("3秒内未找到mallpot图标，点击区域中心点（默认点位）")
+            center_x = (x1_s + x2_s) // 2
+            center_y = (y1_s + y2_s) // 2
+            self.click(center_x, center_y, after_sleep=0.5)
 
+        # 点击go完成传送
         go_feature = self.wait_feature('go', time_out=10, raise_if_not_found=False)
         if not go_feature:
             self.log_error("未找到go图片")
@@ -89,19 +113,15 @@ class FarmFlowerTask(MyBaseTask):
         return True
 
     def step3_wait_mpg_and_move(self):
-        """步骤3：等待mpg再次出现（超时30s），然后按住D键2秒，W键2秒"""
+        """等待传送后回到主页面，然后按住W键4秒"""
         self.log_info("步骤3：等待传送后回到主页面(mpg)，超时30秒")
         mpg_box = self.wait_feature('mpg', time_out=30, raise_if_not_found=False)
         if not mpg_box:
             self.log_error("30秒内未检测到mpg，传送可能失败")
             return False
-        self.log_info("主页面已恢复，按住D键2秒")
-        self.send_key_down('d')
-        self.sleep(2)
-        self.send_key_up('d')
-        self.log_info("按住W键2秒")
+        self.log_info("主页面已恢复，按住W键4秒")
         self.send_key_down('w')
-        self.sleep(2)
+        self.sleep(3.5)
         self.send_key_up('w')
         self.sleep(0.5)
         return True
@@ -113,7 +133,6 @@ class FarmFlowerTask(MyBaseTask):
             self.log_info("===== 奇丽花刷花任务启动 =====", notify=True)
 
             while True:  # 外层循环：每次重新传送
-                # 执行步骤1~3（传送、移动）
                 self.step1_wait_main_page()
 
                 if not self.step2_open_map_and_teleport():
@@ -126,22 +145,22 @@ class FarmFlowerTask(MyBaseTask):
                     self.sleep(5)
                     continue
 
-                # 步骤4：投掷精灵1~5（每次按键后点击屏幕中心）
+                # 投掷精灵1~5
                 self.log_info("步骤4：投掷精灵1~5")
                 for i in range(1, 6):
                     self.send_key(str(i))
-                    self.sleep(0.3)          # 按键后延迟
-                    self.click(0.5, 0.5)     # 点击屏幕中心
-                    self.sleep(0.8)          # 点击后延迟
+                    self.sleep(0.3)
+                    self.click(0.5, 0.5)
+                    self.sleep(0.8)
                 self.sleep(1)
 
-                # 内层循环：反复鞠躬采集，计时
+                # 内层循环：鞠躬采集
                 loop_start = time.time()
                 teleport_time = self.config.get('传送时间', 180)
                 bow_wait = self.config.get('鞠躬间隔', 15)
 
                 while True:
-                    # 操作1：Tab -> 2 -> ESC
+                    # Tab -> 2 -> ESC
                     self.log_info("执行操作：Tab -> 2 -> ESC")
                     self.send_key('tab')
                     self.sleep(0.5)
@@ -150,22 +169,19 @@ class FarmFlowerTask(MyBaseTask):
                     self.send_key('esc')
                     self.sleep(0.5)
 
-                    # 操作2：6 -> R -> 等待（鞠躬间隔） -> X
+                    # 6 -> R -> 等待 -> X
                     self.log_info(f"执行操作：6 -> R -> 等待 {bow_wait} 秒 -> X")
                     self.send_key('6')
                     self.sleep(0.5)
                     self.send_key('r')
-                    self.sleep(bow_wait)       # 鞠躬间隔
+                    self.sleep(bow_wait)
                     self.send_key('x')
                     self.sleep(0.5)
 
-                    # 判断是否超过传送时间
-                    elapsed = time.time() - loop_start
-                    if elapsed >= teleport_time:
-                        self.log_info(f"循环时间已达 {elapsed:.1f} 秒，超过传送时间 {teleport_time} 秒，重新传送")
-                        break  # 跳出内层循环，回到外层重新开始
-                    else:
-                        self.log_info(f"循环时间 {elapsed:.1f} 秒，未达到传送时间，继续循环")
+                    if time.time() - loop_start >= teleport_time:
+                        self.log_info("达到传送时间上限，重新传送")
+                        break
+                    self.log_info("继续鞠躬循环")
 
         except TaskDisabledException:
             self.log_info("奇丽花刷花任务被用户手动停止", notify=True)
