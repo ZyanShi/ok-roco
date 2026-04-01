@@ -22,7 +22,7 @@ class FarmFlowerTask(MyBaseTask):
 
         })
         self.config_description = {
-            '等待时间': '步骤5和11中的等待时间（秒）',
+            '等待时间': '扔球后的等待时间（秒）',
             '背包按键': '打开精灵背包的快捷键',
             '收花方式': '收花时的操作方式',
         }
@@ -67,11 +67,17 @@ class FarmFlowerTask(MyBaseTask):
 
     # ------------------- 步骤方法 -------------------
     def step1_wait_main_page(self):
-        """步骤1：无限等待mpg图片出现，判断为主页面"""
+        """步骤1：等待主页面(mpg)出现，若超时则按ESC返回，直至出现"""
         self.log_info("步骤1：等待主页面(mpg)出现...")
-        self._wait_infinite('mpg')
-        self.log_info("主页面已出现")
-        return True
+        while True:
+            mpg_box = self.wait_feature('mpg', time_out=10, raise_if_not_found=False)
+            if mpg_box:
+                self.log_info("主页面已出现")
+                return True
+            else:
+                self.log_info("10秒内未检测到mpg，按ESC尝试返回主页面")
+                self.send_key('esc')
+                self.sleep(2)  # 等待按键生效
 
     def step2_open_map_and_teleport(self):
         """步骤2：打开地图，点击tp（带偏移校准），再点击go"""
