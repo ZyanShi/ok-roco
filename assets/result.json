@@ -35,39 +35,49 @@
       "height": 1080,
       "id": 5,
       "file_name": "images\\cfb1456d-6f6b5b73-290f-444d-a493-ff53c4720743.png"
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "id": 6,
+      "file_name": "images\\b1bc75a9-91d25469-909b-44f5-8e05-39f53ddbe5c6.png"
     }
   ],
   "categories": [
     {
       "id": 0,
-      "name": "flower"
+      "name": "charge"
     },
     {
       "id": 1,
-      "name": "go"
+      "name": "flower"
     },
     {
       "id": 2,
-      "name": "left"
+      "name": "go"
     },
     {
       "id": 3,
-      "name": "mallpot1"
+      "name": "left"
     },
     {
       "id": 4,
-      "name": "mallpot2"
+      "name": "mallpot1"
     },
     {
       "id": 5,
-      "name": "mpg"
+      "name": "mallpot2"
     },
     {
       "id": 6,
-      "name": "right"
+      "name": "mpg"
     },
     {
       "id": 7,
+      "name": "right"
+    },
+    {
+      "id": 8,
       "name": "tp"
     }
   ],
@@ -75,7 +85,7 @@
     {
       "id": 0,
       "image_id": 0,
-      "category_id": 5,
+      "category_id": 6,
       "segmentation": [],
       "bbox": [
         108.54271356783919,
@@ -90,7 +100,7 @@
     {
       "id": 1,
       "image_id": 1,
-      "category_id": 7,
+      "category_id": 8,
       "segmentation": [],
       "bbox": [
         993.4859525213255,
@@ -105,7 +115,7 @@
     {
       "id": 2,
       "image_id": 2,
-      "category_id": 1,
+      "category_id": 2,
       "segmentation": [],
       "bbox": [
         1476.1809045226128,
@@ -120,7 +130,7 @@
     {
       "id": 3,
       "image_id": 3,
-      "category_id": 2,
+      "category_id": 3,
       "segmentation": [],
       "bbox": [
         126.63316582914571,
@@ -135,7 +145,7 @@
     {
       "id": 4,
       "image_id": 3,
-      "category_id": 6,
+      "category_id": 7,
       "segmentation": [],
       "bbox": [
         421.1225416124444,
@@ -150,7 +160,7 @@
     {
       "id": 5,
       "image_id": 4,
-      "category_id": 3,
+      "category_id": 4,
       "segmentation": [],
       "bbox": [
         921.0194478093125,
@@ -165,7 +175,7 @@
     {
       "id": 6,
       "image_id": 5,
-      "category_id": 4,
+      "category_id": 5,
       "segmentation": [],
       "bbox": [
         943.0963878589691,
@@ -176,6 +186,21 @@
       "ignore": 0,
       "iscrowd": 0,
       "area": 713.9486413321853
+    },
+    {
+      "id": 7,
+      "image_id": 6,
+      "category_id": 0,
+      "segmentation": [],
+      "bbox": [
+        68.74371859296481,
+        920.8040201005024,
+        50.65326633165829,
+        48.844221105527694
+      ],
+      "ignore": 0,
+      "iscrowd": 0,
+      "area": 2474.1193404206992
     }
   ],
   "info": {
@@ -184,6 +209,6 @@
     "description": "",
     "contributor": "Label Studio",
     "url": "",
-    "date_created": "2026-04-01 19:45:20.706732"
+    "date_created": "2026-04-03 17:39:19.081520"
   }
 }
