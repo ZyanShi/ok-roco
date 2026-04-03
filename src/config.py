@@ -103,6 +103,12 @@ config = {
         ["src.tasks.FarmFlowerTask", "FarmFlowerTask"],
 
     ],
-
-
+    'trigger_tasks': [
+        ["src.tasks.AutoChargeTask", "AutoChargeTask"],
+    ],
+    'custom_tabs': [
+        # ['src.ui.MyTab', 'MyTab'],
+    ],
 }
+
+
